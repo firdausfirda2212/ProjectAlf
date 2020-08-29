@@ -83,10 +83,26 @@ if __ is not None:
                 try:
                     G_DRIVE_FOLDER_ID = __.split("folderview?id=")[1]
                 except IndexError:
-                    _1 = True if any(map(str.isdigit, __)) else False
-                    _2 = True if "-" in __ or "_" in __ else False
-                    if True not in [_1 or _2]:
-                        LOGS.info("G_DRIVE_FOLDER_ID " "not a valid ID/URL...")
+                    if 'http://' not in __ or 'https://' not in __:
+                        if any(map(str.isdigit, __)):
+                            _1 = True
+                        else:
+                            _1 = False
+                        if "-" in __ or "_" in __:
+                            _2 = True
+                        else:
+                            _2 = False
+                        if True in [_1 or _2]:
+                            pass
+                        else:
+                            LOGS.info(
+                                "G_DRIVE_FOLDER_ID "
+                                "not a valid ID...")
+                            G_DRIVE_FOLDER_ID = None
+                    else:
+                        LOGS.info(
+                            "G_DRIVE_FOLDER_ID "
+                            "not a valid URL...")
                         G_DRIVE_FOLDER_ID = None
 # =========================================================== #
 #                           LOG                               #
@@ -98,7 +114,7 @@ logger.setLevel(logging.ERROR)
 # =========================================================== #
 
 
-@register(pattern="^.gdauth(?: |$)", outgoing=True)
+@register(pattern=r"^\.gdauth(?: |$)", outgoing=True)
 async def generate_credentials(gdrive):
     if helper.get_credentials(str(gdrive.from_id)) is not None:
         await gdrive.edit("`You already authorized token...`")
@@ -177,7 +193,7 @@ async def create_app(gdrive):
     return build("drive", "v3", credentials=creds, cache_discovery=False)
 
 
-@register(pattern="^.gdreset(?: |$)", outgoing=True)
+@register(pattern=r"^\.gdreset(?: |$)", outgoing=True)
 async def reset_credentials(gdrive):
     await gdrive.edit("`Resetting information...`")
     helper.clear_credentials(str(gdrive.from_id))
@@ -703,7 +719,7 @@ async def reset_parentId():
     return
 
 
-@register(pattern=r"^.gdlist(?: |$)(-l \d+)?(?: |$)?(.*)?(?: |$)", outgoing=True)
+@register(pattern=r"^\.gdlist(?: |$)(-l \d+)?(?: |$)?(.*)?(?: |$)", outgoing=True)
 async def lists(gdrive):
     await gdrive.edit("`Getting information...`")
     checker = gdrive.pattern_match.group(1)
@@ -717,7 +733,7 @@ async def lists(gdrive):
             )
             return
     else:
-        page_size = 50  # default page_size is 50
+        page_size = 25  # default page_size is 25
     checker = gdrive.pattern_match.group(2)
     if checker != "":
         if checker.startswith("-p"):
@@ -771,13 +787,17 @@ async def lists(gdrive):
             if len(result) >= page_size:
                 break
 
-            file_name = files.get("name")
-            if files.get("mimeType") == "application/vnd.google-apps.folder":
-                link = files.get("webViewLink")
-                message += f"`[FOLDER]`\n" f"[{file_name}]({link})\n\n"
+            file_name = files.get('name')
+            if files.get('mimeType') == 'application/vnd.google-apps.folder':
+                link = files.get('webViewLink')
+                message += (
+                    f"📁️ • [{file_name}]({link})\n"
+                )
             else:
-                link = files.get("webContentLink")
-                message += f"`[FILE]`\n" f"[{file_name}]({link})\n\n"
+                link = files.get('webContentLink')
+                message += (
+                    f"📄️ • [{file_name}]({link})\n"
+                )
             result.append(files)
         if len(result) >= page_size:
             break
@@ -803,7 +823,7 @@ async def lists(gdrive):
     return
 
 
-@register(pattern="^.gdf (mkdir|rm|chck) (.*)", outgoing=True)
+@register(pattern=r"^\.gdf (mkdir|rm|chck) (.*)", outgoing=True)
 async def google_drive_managers(gdrive):
     await gdrive.edit("`Sending information...`")
     service = await create_app(gdrive)
@@ -931,7 +951,7 @@ async def google_drive_managers(gdrive):
     return
 
 
-@register(pattern="^.gdabort(?: |$)", outgoing=True)
+@register(pattern=r"^\.gdabort(?: |$)", outgoing=True)
 async def cancel_process(gdrive):
     global is_cancelled
     downloads = aria2.get_downloads()
@@ -944,7 +964,7 @@ async def cancel_process(gdrive):
     await gdrive.delete()
 
 
-@register(pattern="^.gd(?: |$)(.*)", outgoing=True)
+@register(pattern=r"^\.gd(?: |$)(.*)", outgoing=True)
 async def google_drive(gdrive):
     reply = ""
     value = gdrive.pattern_match.group(1)
@@ -1111,7 +1131,7 @@ async def google_drive(gdrive):
     return
 
 
-@register(pattern="^.gdfset (put|rm)(?: |$)(.*)", outgoing=True)
+@register(pattern=r"^\.gdfset (put|rm)(?: |$)(.*)", outgoing=True)
 async def set_upload_folder(gdrive):
     await gdrive.edit("`Sending information...`")
     global parent_Id
